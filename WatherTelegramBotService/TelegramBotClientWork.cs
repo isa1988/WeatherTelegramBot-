@@ -53,16 +53,6 @@ namespace WatherTelegramBotService
                 WeatherToDay(date);
                 return TWENTYMINETS;
             }
-            /*else if ((date.Hour >= 22 && date.Hour <= 23) || (date.Hour >= 0 && date.Hour < 6))
-            {
-                if (date.Hour == 5 && date.Minute >= 30)
-                {
-                    MessageWithTime("5 утра", date);
-                    return ONEMiNUTE;
-                }
-                MessageWithTime("ночь", date);
-                return TWENTYMINETS;
-            }*/
             else if (date.Minute == 0 || date.Minute == 20 || date.Minute == 40)
             {
                 WeatherCurrent(date);
