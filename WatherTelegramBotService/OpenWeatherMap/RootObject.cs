@@ -56,14 +56,16 @@ namespace WatherTelegramBotService.OpenWeatherMap
             caption.Append("  " + header);
             if (MainWeather != null)
             {
-                caption.Append(Environment.NewLine);
-                caption.Append(MainWeather.Temp + " градусов");
                 if (Weather.Count > 0)
                 {
+                    caption.Append(Environment.NewLine);
                     caption.Append("     " + Weather[0].Description);
                 }
+
                 caption.Append(Environment.NewLine);
-                caption.Append("чувствуется как " + MainWeather.FeelsLike);
+                caption.Append(MainWeather.Temp + " °C");
+                caption.Append(Environment.NewLine);
+                caption.Append("чувствуется как " + MainWeather.FeelsLike + " °C");
             }
             return caption.ToString();
         }

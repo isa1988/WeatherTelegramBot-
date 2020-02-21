@@ -13,7 +13,7 @@ namespace WatherTelegramBotService
 
         public StartWork()
         {
-            botClient = new TelegramBotClient("bot token");
+            botClient = new TelegramBotClient("your bot token");
             /*var me = botClient.GetMeAsync().Result;
             Console.WriteLine(
               $"Hello, World! I am user {me.Id} and my name is {me.FirstName} username {me.Username}.");*/

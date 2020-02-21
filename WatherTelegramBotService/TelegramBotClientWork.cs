@@ -14,11 +14,12 @@ namespace WatherTelegramBotService
     class TelegramBotClientWork : IDisposable
     {
         private ITelegramBotClient botClient;
-        ChatId chat = new ChatId("@chenelTelegram");
+        ChatId chat = new ChatId("@you chanel");
         ChatId currChat;
         private const int ONESECOND = 1000;
         private const int ONEMiNUTE = 60 * ONESECOND;
         private const int TWENTYMINETS = 18 * ONEMiNUTE;
+        private const int EIGHTHOURS = (60 * ONEMiNUTE * 8) - ONEMiNUTE;
         public TelegramBotClientWork(ITelegramBotClient botClient, ChatId currChat)
         {
             this.botClient = botClient;
@@ -45,18 +46,23 @@ namespace WatherTelegramBotService
             if (date.Hour == 22 && date.Minute == 0)
             {
                 WeatherTomorow(date);
-                return TWENTYMINETS;
+                return EIGHTHOURS;
             }
             else if (date.Hour == 6 && date.Minute == 0)
             {
                 WeatherToDay(date);
                 return TWENTYMINETS;
             }
-            else if ((date.Hour >= 22 && date.Hour <= 23) || (date.Hour >= 0 && date.Hour < 6))
+            /*else if ((date.Hour >= 22 && date.Hour <= 23) || (date.Hour >= 0 && date.Hour < 6))
             {
+                if (date.Hour == 5 && date.Minute >= 30)
+                {
+                    MessageWithTime("5 утра", date);
+                    return ONEMiNUTE;
+                }
                 MessageWithTime("ночь", date);
                 return TWENTYMINETS;
-            }
+            }*/
             else if (date.Minute == 0 || date.Minute == 20 || date.Minute == 40)
             {
                 WeatherCurrent(date);
@@ -95,7 +101,7 @@ namespace WatherTelegramBotService
         /// <param name="date"></param>
         private async void WeatherToDay(DateTime date)
         {
-            string currentWeatther = await CurrentWeattherTomorow();
+            string currentWeatther = await CurrentWeattherToday();
             SendMessage(chat, currentWeatther);
             currentWeatther = await CurrentWeatther();
             SendMessage(chat, currentWeatther);
