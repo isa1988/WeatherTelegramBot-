@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Args;
@@ -13,17 +14,24 @@ namespace WatherTelegramBotService
 {
     class TelegramBotClientWork : IDisposable
     {
+        private object myLock;
         private ITelegramBotClient botClient;
-        ChatId chat = new ChatId("@you chanel");
+        private MessageSend messageSend;
+        private string loging = string.Empty;
+        ChatId chat = new ChatId("@your chanel");
         ChatId currChat;
+        private Message Message;
         private const int ONESECOND = 1000;
         private const int ONEMiNUTE = 60 * ONESECOND;
         private const int TWENTYMINETS = 18 * ONEMiNUTE;
         private const int EIGHTHOURS = (60 * ONEMiNUTE * 8) - ONEMiNUTE;
         public TelegramBotClientWork(ITelegramBotClient botClient, ChatId currChat)
         {
+            myLock = new object();
             this.botClient = botClient;
             this.currChat = currChat;
+            this.Message = null;
+            this.messageSend = new MessageSend(botClient);
         }
 
         public void Dispose()
@@ -31,17 +39,28 @@ namespace WatherTelegramBotService
             botClient = null;
             chat = null;
             currChat = null;
+            this.messageSend = null;
+        }
+
+        public void Start()
+        {
+            int timeSleep = 0;
+            while (true)
+            {
+                timeSleep = GetMainTimer();
+                Thread.Sleep(timeSleep);
+            }
         }
 
         /// <summary>
         /// Прогноз погодны
         /// </summary>
         /// <returns>Секудны задержки</returns>
-        public int GetMainTimer()
+        private int GetMainTimer()
         {
             DateTime date = DateTime.UtcNow;
             date = date.AddHours(6);
-            MessageWithTime("в цикле", date);
+            //messageSend.MessageWithTime(currChat, "в цикле", date);
 
             if (date.Hour == 22 && date.Minute == 0)
             {
@@ -55,21 +74,22 @@ namespace WatherTelegramBotService
             }
             else if (date.Minute == 0 || date.Minute == 20 || date.Minute == 40)
             {
-                WeatherCurrent(date);
+                if (Message != null)
+                {
+                    WeatherCurrentEdit(date);
+                }
+                else
+                {
+                    WeatherCurrent(date);
+                }
                 return TWENTYMINETS;
             }
             else
             {
-                MessageWithTime("в иначе", date);
+                //WeatherCurrent(date);
+                //MessageWithTime("в иначе", date);
                 return ONEMiNUTE;
             }
-        }
-
-        private void AnswerToAdminIsWork()
-        {
-            //ответ админу что я запустился
-            var me = botClient.GetMeAsync().Result;
-            Log($"Hello, World! I am user {me.Id} and my name is {me.FirstName}.");
         }
 
         /// <summary>
@@ -78,11 +98,18 @@ namespace WatherTelegramBotService
         /// <param name="date"></param>
         private async void WeatherTomorow(DateTime date)
         {
+            lock (myLock)
+            {
+                Message = null;
+                //MessageLog = null;
+            }
             string currentWeatther = await CurrentWeattherTomorow();
-            SendMessage(chat, currentWeatther);
+            messageSend.SendMessage(chat, currentWeatther);
             currentWeatther = await CurrentWeatther();
-            SendMessage(chat, currentWeatther);
-            Log("в 22 " + date.ToString("dd.MM.yyyy HH:mm:ss"));
+            messageSend.SendMessage(chat, currentWeatther);
+            //string logMessage = "в 22 " + date.ToString("dd.MM.yyyy HH:mm:ss");
+            //await messageSend.Log(currChat, logMessage);
+            await messageSend.Log(currChat, loging);
         }
 
         /// <summary>
@@ -92,10 +119,12 @@ namespace WatherTelegramBotService
         private async void WeatherToDay(DateTime date)
         {
             string currentWeatther = await CurrentWeattherToday();
-            SendMessage(chat, currentWeatther);
+            messageSend.SendMessage(chat, currentWeatther);
             currentWeatther = await CurrentWeatther();
-            SendMessage(chat, currentWeatther);
-            Log("в 8 час " + date.Hour.ToString() + " мин " + date.Minute.ToString());
+            Message = await messageSend.GetSendMessage(chat, currentWeatther);
+            //string logMessage = "в 8 час " + date.Hour.ToString() + " мин " + date.Minute.ToString();
+            //MessageLog = await messageSend.Log(currChat, logMessage);
+            await messageSend.Log(currChat, loging);
         }
 
         /// <summary>
@@ -105,18 +134,30 @@ namespace WatherTelegramBotService
         private async void WeatherCurrent(DateTime date)
         {
             string currentWeatther = await CurrentWeatther();
-            SendMessage(chat, currentWeatther);
-            Log("в 20 40" + date.Minute.ToString());
+            await messageSend.GetMessageWithTime(currChat, loging, date);
+            lock (myLock)
+            {
+                //"в 20 40"
+                //MessageLog = messageSend.GetMessageWithTime(currChat, loging, date).Result;
+                Message = messageSend.GetSendMessage(chat, currentWeatther).Result;
+                Message.Text = currentWeatther;
+            }
         }
 
         /// <summary>
-        /// Логирование на дату
+        /// Текущий прогноз (изменить сообщение)
         /// </summary>
-        /// <param name="message"></param>
+        /// <param name="chat">Чат в котором надо изменить сообщение</param>
+        /// <param name="message">Сообщение которое надо изменить</param>
         /// <param name="date"></param>
-        private void MessageWithTime(string message, DateTime date)
+        private async void WeatherCurrentEdit(DateTime date)
         {
-            Log(message + " " + date.ToString("dd.MM.yyyy HH:mm:ss"));
+            string currentWeatther = await CurrentWeatther();
+            currentWeatther += Environment.NewLine;
+            messageSend.EditMessage(Message, currentWeatther);
+            //string logMessage = "в 20 40 на дату " + date.ToString("dd.MM.yyyy HH:mm:ss");
+            //messageSend.LogEdit(MessageLog, logMessage);
+            await messageSend.GetMessageWithTime(currChat, loging, date);
         }
         
         private async Task<HttpResponseMessage> Get(HttpClient client, string url)
@@ -145,6 +186,12 @@ namespace WatherTelegramBotService
                 RootObject responseAnswer = JsonConvert.DeserializeObject<RootObject>(responseAsString);
                 IWeather weather = responseAnswer;
                 string currWeather = weather.GetCurrent();
+
+                lock (myLock)
+                {
+                    loging = weather.GetLoging();
+                }
+                
                 return currWeather;
             }
         }
@@ -166,6 +213,12 @@ namespace WatherTelegramBotService
                 RootObjectOfFiveDays responseAnswer = JsonConvert.DeserializeObject<RootObjectOfFiveDays>(responseAsString);
                 IWeather weather = responseAnswer;
                 string currWeather = weather.GetToDay();
+                
+                lock (myLock)
+                {
+                    loging = weather.GetLogingToDay();
+                }
+
                 return currWeather;
             }
         }
@@ -187,35 +240,16 @@ namespace WatherTelegramBotService
                 RootObjectOfFiveDays responseAnswer = JsonConvert.DeserializeObject<RootObjectOfFiveDays>(responseAsString);
                 IWeather weather = responseAnswer;
                 string currWeather = weather.GetTomorow();
+
+                lock (myLock)
+                {
+                    loging = weather.GetLogingTomorow();
+                }
+
                 return currWeather;
             }
         }
 
-        /// <summary>
-        /// Посылка сообщения на завтра
-        /// </summary>
-        /// <param name="chatId"></param>
-        /// <param name="message"></param>
-        void SendMessage(ChatId chatId, string message)
-        {
-            botClient.SendTextMessageAsync(chatId, message);
-        }
-
-        /// <summary>
-        /// Логирование
-        /// </summary>
-        /// <param name="message"></param>
-        /// <param name="isToTeleTelegram"></param>
-        private void Log(string message, bool isToTeleTelegram = true)
-        {
-            if (isToTeleTelegram)
-            {
-                SendMessage(currChat, message);
-            }
-            else
-            {
-                Console.WriteLine(message);
-            }
-        }
     }
 }
+

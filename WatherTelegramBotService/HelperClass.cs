@@ -35,7 +35,14 @@ namespace WatherTelegramBotService
             }
             else if (idFirstNumber == (int)TypeWeather.Clear)
             {
-                retVal = "☀";
+                if(idWeather == "800")
+                {
+                    retVal = "☀";
+                }
+                else
+                {
+                    retVal = "☁";
+                }
             }
             else if (idFirstNumber == (int)TypeWeather.Cloud)
             {

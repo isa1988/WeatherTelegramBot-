@@ -40,7 +40,8 @@ namespace WatherTelegramBotService.OpenWeatherMap
         }
         public string GetCurrent()
         {
-            string message = GetWeather("Погода на текущий момент");
+            DateTime date = DateTime.UtcNow.AddHours(6);
+            string message = GetWeather("Погода на " + date.ToString("HH:mm"));
             return message;
         }
 
@@ -53,7 +54,7 @@ namespace WatherTelegramBotService.OpenWeatherMap
         {
             string nameIcon = Weather.Count > 0 ? Weather[0].Id.ToString().GetNameIcon() : string.Empty;
             StringBuilder caption = new StringBuilder(nameIcon);
-            caption.Append("  " + header);
+            caption.Append("  <b>" + header + "</b>");
             if (MainWeather != null)
             {
                 if (Weather.Count > 0)
@@ -73,12 +74,38 @@ namespace WatherTelegramBotService.OpenWeatherMap
         public string GetToDay()
         {
             StringBuilder caption = new StringBuilder(Environment.NewLine);
-            string message = GetWeather("На время " + DtAstanaAndDjako.ToString("HH:mm")).ToString();
+            string message = GetWeather("В" + DtAstanaAndDjako.ToString("HH:mm")).ToString();
             caption.Append(message);
             return caption.ToString();
         }
 
         public string GetTomorow()
+        {
+            throw new NotImplementedException();
+        }
+
+        public string GetLoging()
+        {
+            StringBuilder log = new StringBuilder(string.Empty);
+            if (MainWeather != null)
+            {
+                for(int i = 0; i < Weather.Count; i++)
+                {
+                    log.Append("Id = " + Weather[i].Id);
+                    log.Append(" Description = " + Weather[i].Description);
+                    log.Append(" Main = " + Weather[i].Main);
+                    log.Append(Environment.NewLine);
+                }
+            }
+            return log.ToString();
+        }
+
+        public string GetLogingToDay()
+        {
+            throw new NotImplementedException();
+        }
+
+        public string GetLogingTomorow()
         {
             throw new NotImplementedException();
         }
