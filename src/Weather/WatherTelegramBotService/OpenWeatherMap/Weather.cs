@@ -44,8 +44,8 @@ namespace WeatherTelegramBotService.OpenWeatherMap
         }
         public string GetWeatherOfCurrent()
         {
-            DateTime date = DateTime.UtcNow.AddHours(6);
-            string message = GetWeather("Погода на " + date.ToString("HH:mm"));
+            DateTime dateAstanaAndDjako = HelperClass.GetAstanaAndDjako();
+            string message = GetWeather("Погода на " + dateAstanaAndDjako.ToString("HH:mm"));
             return message;
         }
 

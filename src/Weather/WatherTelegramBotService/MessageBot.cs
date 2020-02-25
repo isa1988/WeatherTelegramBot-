@@ -17,6 +17,23 @@ namespace WeatherTelegramBotService
         }
 
         /// <summary>
+        /// Отправить фото в чат 
+        /// </summary>
+        /// <param name="chatId"></param>
+        /// <param name="caption"></param>
+        /// <param name="file"></param>
+        public void SedFoto(ChatId chatId, string caption, byte[] file)
+        {
+            if (file == null || file.Length == 0) return;
+            System.IO.Stream fileStream = new System.IO.MemoryStream(file);
+            List<InputMediaBase> inputMediaBases = new List<InputMediaBase>();
+            inputMediaBases.Add(new InputMediaPhoto(new InputMedia(fileStream, caption)));
+            
+            botClient.SendMediaGroupAsync(chatId, inputMediaBases);
+        }
+
+
+        /// <summary>
         /// Посылка сообщения
         /// </summary>
         /// <param name="chatId"></param>

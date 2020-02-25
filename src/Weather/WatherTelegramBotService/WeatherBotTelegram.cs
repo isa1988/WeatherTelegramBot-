@@ -26,7 +26,7 @@ namespace WeatherTelegramBotService
 
         void Bot_OnMessage(object sender, MessageEventArgs e)
         {
-            if (e.Message.Text == null || e.Message.Text.ToLower() != "/goW") return;
+            if (e.Message.Text == null || e.Message.Text.ToLower() != "/gow") return;
             using (TelegramBotClientWork work = new TelegramBotClientWork(botClient, e.Message.Chat))
             {
                 MessageBot messageBot = new MessageBot(botClient);

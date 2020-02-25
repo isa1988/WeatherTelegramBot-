@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,9 +21,11 @@ namespace WeatherTelegramBotService
         ChatId currChat;
         private Message Message;
         private const int ONESECOND = 1000;
-        private const int ONEMiNUTE = 60 * ONESECOND;
-        private const int TWENTYMINETS = 18 * ONEMiNUTE;
-        private const int EIGHTHOURS = (60 * ONEMiNUTE * 8) - ONEMiNUTE;
+        private const int ONEMINUTE = 60 * ONESECOND;
+        private const int THIRTYMINUTES = 30 * ONEMINUTE;
+        private const int ONEHOUR = 60 * ONEMINUTE;
+        private const int TWENTYMINETS = 18 * ONEMINUTE;
+        private const int EIGHTHOURS = ONEHOUR * 8 - ONEMINUTE;
         public TelegramBotClientWork(ITelegramBotClient botClient, ChatId currChat)
         {
             this.currChat = currChat;
@@ -66,6 +69,25 @@ namespace WeatherTelegramBotService
                 WeatherToDay(date);
                 return TWENTYMINETS;
             }
+            // на тот случай если включил ночью
+            else if (date.Hour == 23 || (date.Hour >= 0 && date.Hour < 6))
+            {
+                if (date.Hour == 5)
+                {
+                    if (date.Minute >= 0 && date.Minute < 30)
+                    {
+                        return THIRTYMINUTES;
+                    }
+                    else
+                    {
+                        return ONEMINUTE;
+                    }
+                }
+                else
+                {
+                    return ONEHOUR;
+                }
+            }
             else if (date.Minute == 0 || date.Minute == 20 || date.Minute == 40)
             {
                 if (Message != null)
@@ -80,7 +102,7 @@ namespace WeatherTelegramBotService
             }
             else
             {
-                return ONEMiNUTE;
+                return ONEMINUTE;
             }
         }
 
@@ -90,8 +112,8 @@ namespace WeatherTelegramBotService
         /// <param name="date"></param>
         private void WeatherTomorow(DateTime date)
         {
-            string currentWeatther = CurrentWeattherTomorow();
-            messageBot.SendMessage(chat, currentWeatther);
+            string json = CurrentWeattherTomorow();
+            SendGraphic(json, true);
             WeatherCurrent(date);
         }
 
@@ -101,8 +123,8 @@ namespace WeatherTelegramBotService
         /// <param name="date"></param>
         private void WeatherToDay(DateTime date)
         {
-            string currentWeatther = CurrentWeattherToday();
-            messageBot.SendMessage(chat, currentWeatther);
+            string json = CurrentWeattherToday();
+            SendGraphic(json, true);
             WeatherCurrent(date);
         }
 
@@ -115,7 +137,6 @@ namespace WeatherTelegramBotService
             string currentWeatther = CurrentWeatther();
             messageBot.MessageWithTime(currChat, loger, date);
             Message = messageBot.GetAfterSendMessage(chat, currentWeatther).Result;
-            
         }
 
         /// <summary>
@@ -126,15 +147,56 @@ namespace WeatherTelegramBotService
         {
             string currentWeatther = CurrentWeatther();
             currentWeatther += Environment.NewLine;
-            messageBot.EditMessage(Message, currentWeatther);
+            messageBot.EditMessage(Message, currentWeatther, isAccumulate: false);
             messageBot.MessageWithTime(currChat, loger, date);
         }
-        
-        private async Task<HttpResponseMessage> Get(HttpClient client, string url)
+
+        /// <summary>
+        /// Вставить график 
+        /// </summary>
+        /// <param name="jsonWeather">Набор данныъ в формате Json</param>
+        /// <param name="isToDay">На сегодня, если на завтра то false</param>
+        private void SendGraphic(string jsonWeather, bool isToDay)
+        {
+            WeatherOfFiveDays responseAnswer = JsonConvert.DeserializeObject<WeatherOfFiveDays>(jsonWeather);
+            List<DataOfWeatherForPicture> dataOfWeatherForPictures;
+            if (isToDay)
+            {
+                dataOfWeatherForPictures = responseAnswer.GetDataToDayForPicture();
+            }
+            else
+            {
+                dataOfWeatherForPictures = responseAnswer.GetDataTomorowForPicture();
+            }
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri("http://localhost:3000/");
+                client.DefaultRequestHeaders.Accept.Clear();
+                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                string jsonStr = JsonConvert.SerializeObject(dataOfWeatherForPictures);
+                using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, "http://localhost:3000/chart/"))
+                {
+                    requestMessage.Headers.Add("req", jsonStr);
+                    HttpResponseMessage response = client.SendAsync(requestMessage).Result;
+
+                    byte[] responseAsByte = response.Content.ReadAsByteArrayAsync().Result;
+                    string caption = isToDay ? "Погода на сегодня" : "Погода на завтра";
+                    messageBot.SendMessage(chat, caption);
+                    messageBot.SedFoto(chat, caption, responseAsByte);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Настройки для запроса на погоду
+        /// </summary>
+        /// <param name="client"></param>
+        /// <param name="url"></param>
+        /// <returns></returns>
+        private async Task<HttpResponseMessage> GetResponseMessage(HttpClient client, string url)
         {
             using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, url))
             {
-
                 requestMessage.Headers.Add("x-rapidapi-host", "");
                 requestMessage.Headers.Add("x-rapidapi-key", "");
                 return await client.SendAsync(requestMessage);
@@ -151,7 +213,7 @@ namespace WeatherTelegramBotService
             {
                 string url = "https://community-open-weather-map.p.rapidapi.com/weather?lang=ru&units=metric&q=Bishkek";
 
-                HttpResponseMessage response = Get(client, url).Result;
+                HttpResponseMessage response = GetResponseMessage(client, url).Result;
 
                 string responseAsString = response.Content.ReadAsStringAsync().Result;
 
@@ -175,15 +237,11 @@ namespace WeatherTelegramBotService
             {
                 string url = "https://community-open-weather-map.p.rapidapi.com/forecast?q=Bishkek&units=metric&lang=ru";
 
-                HttpResponseMessage response = Get(client, url).Result;
+                HttpResponseMessage response = GetResponseMessage(client, url).Result;
 
                 string responseAsString = response.Content.ReadAsStringAsync().Result;
 
-                WeatherOfFiveDays responseAnswer = JsonConvert.DeserializeObject<WeatherOfFiveDays>(responseAsString);
-                
-                string currWeather = responseAnswer.GetWeatherOfToDay();
-                
-                return currWeather;
+                return responseAsString;
             }
         }
 
@@ -197,18 +255,13 @@ namespace WeatherTelegramBotService
             {
                 string url = "https://community-open-weather-map.p.rapidapi.com/forecast?q=Bishkek&units=metric&lang=ru";
 
-                HttpResponseMessage response = Get(client, url).Result;
+                HttpResponseMessage response = GetResponseMessage(client, url).Result;
 
                 string responseAsString = response.Content.ReadAsStringAsync().Result;
 
-                WeatherOfFiveDays responseAnswer = JsonConvert.DeserializeObject<WeatherOfFiveDays>(responseAsString);
-                
-                string currWeather = responseAnswer.GetWeatherOfTomorow();
-                
-                return currWeather;
+                return responseAsString;
             }
         }
-
     }
 }
 
