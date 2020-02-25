@@ -8,16 +8,14 @@ using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Args;
 using Telegram.Bot.Types;
-using WatherTelegramBotService.OpenWeatherMap;
+using WeatherTelegramBotService.OpenWeatherMap;
 
-namespace WatherTelegramBotService
+namespace WeatherTelegramBotService
 {
     class TelegramBotClientWork : IDisposable
     {
-        private object myLock;
-        private ITelegramBotClient botClient;
-        private MessageSend messageSend;
-        private string loging = string.Empty;
+        private MessageBot messageBot;
+        private string loger = string.Empty;
         ChatId chat = new ChatId("@your chanel");
         ChatId currChat;
         private Message Message;
@@ -27,19 +25,16 @@ namespace WatherTelegramBotService
         private const int EIGHTHOURS = (60 * ONEMiNUTE * 8) - ONEMiNUTE;
         public TelegramBotClientWork(ITelegramBotClient botClient, ChatId currChat)
         {
-            myLock = new object();
-            this.botClient = botClient;
             this.currChat = currChat;
             this.Message = null;
-            this.messageSend = new MessageSend(botClient);
+            this.messageBot = new MessageBot(botClient);
         }
 
         public void Dispose()
         {
-            botClient = null;
-            chat = null;
-            currChat = null;
-            this.messageSend = null;
+            this.chat = null;
+            this.currChat = null;
+            this.messageBot = null;
         }
 
         public void Start()
@@ -60,7 +55,6 @@ namespace WatherTelegramBotService
         {
             DateTime date = DateTime.UtcNow;
             date = date.AddHours(6);
-            //messageSend.MessageWithTime(currChat, "в цикле", date);
 
             if (date.Hour == 22 && date.Minute == 0)
             {
@@ -86,8 +80,6 @@ namespace WatherTelegramBotService
             }
             else
             {
-                //WeatherCurrent(date);
-                //MessageWithTime("в иначе", date);
                 return ONEMiNUTE;
             }
         }
@@ -96,101 +88,78 @@ namespace WatherTelegramBotService
         /// Прогноз на завтра
         /// </summary>
         /// <param name="date"></param>
-        private async void WeatherTomorow(DateTime date)
+        private void WeatherTomorow(DateTime date)
         {
-            lock (myLock)
-            {
-                Message = null;
-                //MessageLog = null;
-            }
-            string currentWeatther = await CurrentWeattherTomorow();
-            messageSend.SendMessage(chat, currentWeatther);
-            currentWeatther = await CurrentWeatther();
-            messageSend.SendMessage(chat, currentWeatther);
-            //string logMessage = "в 22 " + date.ToString("dd.MM.yyyy HH:mm:ss");
-            //await messageSend.Log(currChat, logMessage);
-            await messageSend.Log(currChat, loging);
+            string currentWeatther = CurrentWeattherTomorow();
+            messageBot.SendMessage(chat, currentWeatther);
+            WeatherCurrent(date);
         }
 
         /// <summary>
         /// Прогноз на сегодня
         /// </summary>
         /// <param name="date"></param>
-        private async void WeatherToDay(DateTime date)
+        private void WeatherToDay(DateTime date)
         {
-            string currentWeatther = await CurrentWeattherToday();
-            messageSend.SendMessage(chat, currentWeatther);
-            currentWeatther = await CurrentWeatther();
-            Message = await messageSend.GetSendMessage(chat, currentWeatther);
-            //string logMessage = "в 8 час " + date.Hour.ToString() + " мин " + date.Minute.ToString();
-            //MessageLog = await messageSend.Log(currChat, logMessage);
-            await messageSend.Log(currChat, loging);
+            string currentWeatther = CurrentWeattherToday();
+            messageBot.SendMessage(chat, currentWeatther);
+            WeatherCurrent(date);
         }
 
         /// <summary>
         /// Текущий прогноз
         /// </summary>
         /// <param name="date"></param>
-        private async void WeatherCurrent(DateTime date)
+        private void WeatherCurrent(DateTime date)
         {
-            string currentWeatther = await CurrentWeatther();
-            await messageSend.GetMessageWithTime(currChat, loging, date);
-            lock (myLock)
-            {
-                //"в 20 40"
-                //MessageLog = messageSend.GetMessageWithTime(currChat, loging, date).Result;
-                Message = messageSend.GetSendMessage(chat, currentWeatther).Result;
-                Message.Text = currentWeatther;
-            }
+            string currentWeatther = CurrentWeatther();
+            messageBot.MessageWithTime(currChat, loger, date);
+            Message = messageBot.GetAfterSendMessage(chat, currentWeatther).Result;
+            
         }
 
         /// <summary>
-        /// Текущий прогноз (изменить сообщение)
+        /// Редактирует сообщение о текущей погоде
         /// </summary>
-        /// <param name="chat">Чат в котором надо изменить сообщение</param>
-        /// <param name="message">Сообщение которое надо изменить</param>
         /// <param name="date"></param>
-        private async void WeatherCurrentEdit(DateTime date)
+        private void WeatherCurrentEdit(DateTime date)
         {
-            string currentWeatther = await CurrentWeatther();
+            string currentWeatther = CurrentWeatther();
             currentWeatther += Environment.NewLine;
-            messageSend.EditMessage(Message, currentWeatther);
-            //string logMessage = "в 20 40 на дату " + date.ToString("dd.MM.yyyy HH:mm:ss");
-            //messageSend.LogEdit(MessageLog, logMessage);
-            await messageSend.GetMessageWithTime(currChat, loging, date);
+            messageBot.EditMessage(Message, currentWeatther);
+            messageBot.MessageWithTime(currChat, loger, date);
         }
         
         private async Task<HttpResponseMessage> Get(HttpClient client, string url)
         {
-            HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, url);
+            using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, url))
+            {
 
-            requestMessage.Headers.Add("x-rapidapi-host", "");
-            requestMessage.Headers.Add("x-rapidapi-key", "");
-            return await client.SendAsync(requestMessage);
+                requestMessage.Headers.Add("x-rapidapi-host", "");
+                requestMessage.Headers.Add("x-rapidapi-key", "");
+                return await client.SendAsync(requestMessage);
+            }
         }
 
         /// <summary>
         /// Погода на текущий момент 
         /// </summary>
         /// <returns></returns>
-        async Task<string> CurrentWeatther()
+        private string CurrentWeatther()
         {
             using (HttpClient client = new HttpClient())
             {
                 string url = "https://community-open-weather-map.p.rapidapi.com/weather?lang=ru&units=metric&q=Bishkek";
 
-                HttpResponseMessage response = await Get(client, url);
+                HttpResponseMessage response = Get(client, url).Result;
 
-                string responseAsString = await response.Content.ReadAsStringAsync();
+                string responseAsString = response.Content.ReadAsStringAsync().Result;
 
-                RootObject responseAnswer = JsonConvert.DeserializeObject<RootObject>(responseAsString);
-                IWeather weather = responseAnswer;
-                string currWeather = weather.GetCurrent();
+                Weather responseAnswer = JsonConvert.DeserializeObject<Weather>(responseAsString);
+                
+                string currWeather = responseAnswer.GetWeatherOfCurrent();
 
-                lock (myLock)
-                {
-                    loging = weather.GetLoging();
-                }
+                loger = responseAnswer.GetLoging();
                 
                 return currWeather;
             }
@@ -200,52 +169,42 @@ namespace WatherTelegramBotService
         /// Погода на текущий день 
         /// </summary>
         /// <returns></returns>
-        async Task<string> CurrentWeattherToday()
+        private string CurrentWeattherToday()
         {
             using (HttpClient client = new HttpClient())
             {
                 string url = "https://community-open-weather-map.p.rapidapi.com/forecast?q=Bishkek&units=metric&lang=ru";
 
-                HttpResponseMessage response = await Get(client, url);
+                HttpResponseMessage response = Get(client, url).Result;
 
-                string responseAsString = await response.Content.ReadAsStringAsync();
+                string responseAsString = response.Content.ReadAsStringAsync().Result;
 
-                RootObjectOfFiveDays responseAnswer = JsonConvert.DeserializeObject<RootObjectOfFiveDays>(responseAsString);
-                IWeather weather = responseAnswer;
-                string currWeather = weather.GetToDay();
+                WeatherOfFiveDays responseAnswer = JsonConvert.DeserializeObject<WeatherOfFiveDays>(responseAsString);
                 
-                lock (myLock)
-                {
-                    loging = weather.GetLogingToDay();
-                }
-
+                string currWeather = responseAnswer.GetWeatherOfToDay();
+                
                 return currWeather;
             }
         }
-        
+
         /// <summary>
         /// Погода на завтра
         /// </summary>
         /// <returns></returns>
-        async Task<string> CurrentWeattherTomorow()
+        private string CurrentWeattherTomorow()
         {
             using (HttpClient client = new HttpClient())
             {
                 string url = "https://community-open-weather-map.p.rapidapi.com/forecast?q=Bishkek&units=metric&lang=ru";
 
-                HttpResponseMessage response = await Get(client, url);
+                HttpResponseMessage response = Get(client, url).Result;
 
-                string responseAsString = await response.Content.ReadAsStringAsync();
+                string responseAsString = response.Content.ReadAsStringAsync().Result;
 
-                RootObjectOfFiveDays responseAnswer = JsonConvert.DeserializeObject<RootObjectOfFiveDays>(responseAsString);
-                IWeather weather = responseAnswer;
-                string currWeather = weather.GetTomorow();
-
-                lock (myLock)
-                {
-                    loging = weather.GetLogingTomorow();
-                }
-
+                WeatherOfFiveDays responseAnswer = JsonConvert.DeserializeObject<WeatherOfFiveDays>(responseAsString);
+                
+                string currWeather = responseAnswer.GetWeatherOfTomorow();
+                
                 return currWeather;
             }
         }

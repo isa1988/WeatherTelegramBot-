@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace WatherTelegramBotService
+namespace WeatherTelegramBotService
 {
-    public interface IStartWork
+    public interface IWeatherBotTelegram
     {
         void Run();
     }

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace WatherTelegramBotService.OpenWeatherMap
+namespace WeatherTelegramBotService.OpenWeatherMap
 {
     class City
     {
@@ -10,7 +10,7 @@ namespace WatherTelegramBotService.OpenWeatherMap
         
         public string Name { get; set; }
 
-        public Coord Coord { get; set; }
+        public Coordinate Coord { get; set; }
         
         public string Country { get; set; }
 

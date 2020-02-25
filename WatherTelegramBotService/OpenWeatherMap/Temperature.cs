@@ -3,9 +3,9 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace WatherTelegramBotService.OpenWeatherMap
+namespace WeatherTelegramBotService.OpenWeatherMap
 {
-    class MainWeather
+    class Temperature
     {
         public float Temp { get; set; }
         [JsonProperty("feels_like")]

@@ -1,14 +1,14 @@
 ﻿using System;
-using WatherTelegramBotService;
+using WeatherTelegramBotService;
 
-namespace WatherTelegramBotConsolApp
+namespace WeatherTelegramBotConsolApp
 {
     class Program
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
-            StartWork work = new StartWork();
+            Console.WriteLine("сервис запущен, ожидается подтвержение от .......!");
+            IWeatherBotTelegram work = new WeatherBotTelegram();
             work.Run();
             Console.ReadLine();
         }

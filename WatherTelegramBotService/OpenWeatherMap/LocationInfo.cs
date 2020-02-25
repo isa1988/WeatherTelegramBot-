@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace WatherTelegramBotService.OpenWeatherMap
+namespace WeatherTelegramBotService.OpenWeatherMap
 {
-    class Sys
+    class LocationInfo
     {
         public int Type { get; set; }
         public int Id { get; set; }

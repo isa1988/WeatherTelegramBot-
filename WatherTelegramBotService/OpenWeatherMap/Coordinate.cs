@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace WatherTelegramBotService.OpenWeatherMap
+namespace WeatherTelegramBotService.OpenWeatherMap
 {
-    class Coord
+    class Coordinate
     {
         public double Lon { get; set; }
         public double Lat { get; set; }

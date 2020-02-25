@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace WatherTelegramBotService.OpenWeatherMap
+namespace WeatherTelegramBotService.OpenWeatherMap
 {
     class Clouds
     {

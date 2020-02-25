@@ -4,9 +4,9 @@ using System.Collections.Generic;
 using System.Text;
 using System.Linq;
 
-namespace WatherTelegramBotService.OpenWeatherMap
+namespace WeatherTelegramBotService.OpenWeatherMap
 {
-    class RootObjectOfFiveDays : IWeather
+    class WeatherOfFiveDays
     {
         public string Cod { get; set; }
         public string message { get; set; }
@@ -14,26 +14,21 @@ namespace WatherTelegramBotService.OpenWeatherMap
         public int Cnt { get; set; }
 
         [JsonProperty("list")]
-        public List<RootObject> rootObjects { get; set; }
+        public List<Weather> rootObjects { get; set; }
 
         public City City { get; set; }
-        public RootObjectOfFiveDays()
+        public WeatherOfFiveDays()
         {
-            rootObjects = new List<RootObject>();
+            rootObjects = new List<Weather>();
         }
 
-        public string GetCurrent()
-        {
-            throw new NotImplementedException();
-        }
-
-        public string GetToDay()
+        public string GetWeatherOfToDay()
         {
             DateTime date = DateTime.UtcNow.AddHours(6);
             return GetODate(date, "Доброе утро. Погода на сегодня");
         }
 
-        public string GetTomorow()
+        public string GetWeatherOfTomorow()
         {
             DateTime date = DateTime.UtcNow.AddHours(6).AddDays(1);
             return GetODate(date, "Добрый вечер. Погода на завтра");
@@ -54,7 +49,7 @@ namespace WatherTelegramBotService.OpenWeatherMap
                 rootObjects[i].ConvertionDtTxt();
             }
             
-            List<RootObject> rootObjectTemps = rootObjects.Where(n => n.DtAstanaAndDjako.Date == date.Date).ToList();
+            List<Weather> rootObjectTemps = rootObjects.Where(n => n.DtAstanaAndDjako.Date == date.Date).ToList();
             StringBuilder caption = new StringBuilder("<b>"+startCaption+"</b>");
 
             for (int i = 0; i < rootObjectTemps.Count; i++)
@@ -65,18 +60,13 @@ namespace WatherTelegramBotService.OpenWeatherMap
                 }
                 else
                 {
-                    caption.Append(rootObjectTemps[i].GetToDay());
+                    caption.Append(rootObjectTemps[i].GetWeatherOfToDayOrTomorow());
                 }
             }
 
             return caption.ToString();
         }
-
-        public string GetLoging()
-        {
-            throw new NotImplementedException();
-        }
-
+        
         public string GetLogingToDay()
         {
             DateTime date = DateTime.UtcNow.AddHours(6);
