@@ -22,14 +22,37 @@ namespace WeatherTelegramBotService
         /// <param name="chatId"></param>
         /// <param name="caption"></param>
         /// <param name="file"></param>
-        public void SedFoto(ChatId chatId, string caption, byte[] file)
+        public Message[] SedFoto(ChatId chatId, string caption, List<byte[]> file)
         {
-            if (file == null || file.Length == 0) return;
-            System.IO.Stream fileStream = new System.IO.MemoryStream(file);
+            if (file == null || file.Count == 0) return new Message[2];
             List<InputMediaBase> inputMediaBases = new List<InputMediaBase>();
-            inputMediaBases.Add(new InputMediaPhoto(new InputMedia(fileStream, caption)));
-            
-            botClient.SendMediaGroupAsync(chatId, inputMediaBases);
+            List<Message> messages = new List<Message>();
+            for (int i = 0; i < file.Count; i++)
+            {
+                System.IO.Stream fileStream = new System.IO.MemoryStream(file[i]);
+                //inputMediaBases.Add(new InputMediaPhoto(new InputMedia(fileStream, caption + i.ToString())));
+                var inputMediaBases1 = new Telegram.Bot.Types.InputFiles.InputOnlineFile(fileStream, caption);
+                Message message = botClient.SendPhotoAsync(chatId, inputMediaBases1, disableNotification: true).Result;
+                messages.Add(message);
+            }
+            return messages.ToArray();
+        }
+
+
+        /// <summary>
+        /// Отправить фото в чат 
+        /// </summary>
+        /// <param name="chatId"></param>
+        /// <param name="caption"></param>
+        /// <param name="file"></param>
+        public Message[] EditFoto(Message[] messages, List<byte[]> file)
+        {
+            if (messages == null || messages.Length == 0) return new Message[2];
+            for (int i = 0; i < messages.Length; i++)
+            {
+                botClient.DeleteMessageAsync(messages[i].Chat, messages[i].MessageId);
+            }
+            return SedFoto(messages[0].Chat, "редактировать фото", file);
         }
 
 

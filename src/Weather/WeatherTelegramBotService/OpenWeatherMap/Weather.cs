@@ -1,12 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using AutoMapper;
 using Newtonsoft.Json;
 
 namespace WeatherTelegramBotService.OpenWeatherMap
 {
     class Weather
     {
+        [JsonIgnore]
+        private IMapper _mapper;
+
         [JsonProperty("coord")]
         public Coordinate Coordinate { get; set; }
         [JsonProperty("weather")]
@@ -34,6 +39,16 @@ namespace WeatherTelegramBotService.OpenWeatherMap
 
         public DateTime DtAstanaAndDjako { get; set; }
 
+        public Weather()
+        {
+            var config = new MapperConfiguration(cfg => {
+                cfg.CreateMap<WeatherInfo, WeatherInfoJson>()
+                    .ForMember(n => n.Id, m => m.MapFrom(c => c.Id))
+                    .ForMember(n => n.Desc, m => m.MapFrom(c => Transliteration.Front(c.Description)));
+            });
+
+            _mapper = config.CreateMapper();
+        }
         public void ConvertionDtTxt()
         {
             if (DtTxt?.Length > 0)
@@ -95,6 +110,44 @@ namespace WeatherTelegramBotService.OpenWeatherMap
                 }
             }
             return log.ToString();
+        }
+
+        /// <summary>
+        /// Данные для графика
+        /// </summary>
+        /// <param name="typeOrder">Тип для отбора</param>
+        /// <returns></returns>
+        public DataOfWeatherForPicture GetDataOfWeatherForPictures(DataOfWeatherForPictureType typeOrder)
+        {
+            int temperature = 0;
+            if (typeOrder == DataOfWeatherForPictureType.Temperature)
+            {
+                temperature = (int)Temperature.Temp;
+            }
+            else if (typeOrder == DataOfWeatherForPictureType.FeelTemperature)
+            {
+                temperature = (int)Temperature.FeelsLike;
+            }
+            else if (typeOrder == DataOfWeatherForPictureType.Desc)
+            {
+                temperature = WeatherInfo?.Count > 0 ? WeatherInfo[0].Id : 0;
+            }
+            if (DtAstanaAndDjako == default(DateTime))
+                DtAstanaAndDjako = HelperClass.GetAstanaAndDjako();
+            return new DataOfWeatherForPicture(DtAstanaAndDjako.ToString("HH:mm"), temperature);
+        }
+
+        public void UpdateListWeatherInfoJson(List<WeatherInfoJson> weatherInfoJsons)
+        {
+            WeatherInfoJson weatherInfoJson = new WeatherInfoJson();
+            if (WeatherInfo?.Count > 0)
+            {
+                if (!weatherInfoJsons.Any(x => x.Id == WeatherInfo[0].Id))
+                {
+                    weatherInfoJson = _mapper.Map<WeatherInfoJson>(WeatherInfo[0]);
+                    weatherInfoJsons.Add(weatherInfoJson);
+                }
+            }
         }
 
         private string GetNameIcon(int idWeather)

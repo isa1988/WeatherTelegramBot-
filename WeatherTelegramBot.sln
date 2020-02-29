@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29613.14
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WeatherTelegramBotConsolApp", "src\Weather\WatherTelegramBotConsolApp\WeatherTelegramBotConsolApp.csproj", "{7CBC2391-7894-4EEE-BA1D-85D2FD014C27}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WeatherTelegramBotConsolApp", "src\Weather\WeatherTelegramBotConsolApp\WeatherTelegramBotConsolApp.csproj", "{7CBC2391-7894-4EEE-BA1D-85D2FD014C27}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WeatherTelegramBotService", "src\Weather\WatherTelegramBotService\WeatherTelegramBotService.csproj", "{BC876FA8-5B23-4B5E-BD78-395A9B93AA64}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WeatherTelegramBotService", "src\Weather\WeatherTelegramBotService\WeatherTelegramBotService.csproj", "{BC876FA8-5B23-4B5E-BD78-395A9B93AA64}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

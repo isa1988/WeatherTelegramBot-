@@ -115,40 +115,62 @@ namespace WeatherTelegramBotService.OpenWeatherMap
         /// <summary>
         /// Данные для графика на сегодняшний день
         /// </summary>
+        /// <param name="typeOrder">Тип для отбора</param>
         /// <returns></returns>
-        public List<DataOfWeatherForPicture> GetDataToDayForPicture()
+        public List<DataOfWeatherForPicture> GetDataToDayForPicture(DataOfWeatherForPictureType typeOrder)
         {
             DateTime dateAstanaAndDjako = HelperClass.GetAstanaAndDjako();
-            return GetDataOfWeatherForPictures(dateAstanaAndDjako);
+            return GetDataOfWeatherForPictures(dateAstanaAndDjako, typeOrder);
         }
 
         /// <summary>
         /// Данные для графика на завтра
         /// </summary>
+        /// <param name="typeOrder">Тип для отбора</param>
         /// <returns></returns>
-        public List<DataOfWeatherForPicture> GetDataTomorowForPicture()
+        public List<DataOfWeatherForPicture> GetDataTomorowForPicture(DataOfWeatherForPictureType typeOrder)
         {
             DateTime dateAstanaAndDjakoTomorow = HelperClass.GetAstanaAndDjakoTomorow();
-            return GetDataOfWeatherForPictures(dateAstanaAndDjakoTomorow);
+            return GetDataOfWeatherForPictures(dateAstanaAndDjakoTomorow, typeOrder);
         }
 
         /// <summary>
         /// Данные для графика
         /// </summary>
         /// <param name="date">Дата</param>
+        /// <param name="typeOrder">Тип для отбора</param>
         /// <returns></returns>
-        public List<DataOfWeatherForPicture> GetDataOfWeatherForPictures(DateTime date)
+        public List<DataOfWeatherForPicture> GetDataOfWeatherForPictures(DateTime date, DataOfWeatherForPictureType typeOrder)
         {
             List<DataOfWeatherForPicture> dataOfWeatherForPictures = new List<DataOfWeatherForPicture>();
             if (Weathers == null || Weathers.Count == 0) return dataOfWeatherForPictures;
             UpdateWeatherOfDay(date);
-
+            
             for (int i = 0; i < WeatherOfDay.Count; i++)
             {
-                dataOfWeatherForPictures.Add(new DataOfWeatherForPicture(WeatherOfDay[i].DtAstanaAndDjako.ToString("HH:mm"), (int)WeatherOfDay[i].Temperature.Temp));
+                dataOfWeatherForPictures.Add(WeatherOfDay[i].GetDataOfWeatherForPictures(typeOrder));
             }
 
             return dataOfWeatherForPictures;
+        }
+
+        /// <summary>
+        /// Вернуть коды на день 
+        /// </summary>
+        /// <param name="date"></param>
+        /// <returns></returns>
+        public List<WeatherInfoJson> GetWeatherInfoJsonListOfDay(DateTime date)
+        {
+            List<WeatherInfoJson> weatherInfoJsons = new List<WeatherInfoJson>();
+            if (Weathers == null || Weathers.Count == 0) return weatherInfoJsons;
+            UpdateWeatherOfDay(date);
+
+            for (int i = 0; i < WeatherOfDay.Count; i++)
+            {
+                WeatherOfDay[i].UpdateListWeatherInfoJson(weatherInfoJsons);
+            }
+
+            return weatherInfoJsons;
         }
     }
 }
